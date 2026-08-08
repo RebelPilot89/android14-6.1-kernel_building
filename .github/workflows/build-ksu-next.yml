@@ -344,8 +344,10 @@ jobs:
       run: |
         # 1. Vincular Kconfig de SUSFS al árbol del kernel si no está enlazado
         if [ "$ADD_SUSFS" = "true" ] && [ -d "common/fs/susfs" ]; then
-          if ! grep -q "fs/susfs/Kconfig" common/fs/Kconfig 2>/dev/null; then
-            echo 'source "fs/susfs/Kconfig"' >> common/fs/Kconfig
+          if grep -q 'source "fs/susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
+            sed -i 's|source "fs/susfs/Kconfig"|source "susfs/Kconfig"|' common/fs/Kconfig
+          elif ! grep -q 'source "susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
+            echo 'source "susfs/Kconfig"' >> common/fs/Kconfig
           fi
         fi
 
@@ -379,7 +381,6 @@ jobs:
         printf '%s\n' \
           'CONFIG_ZRAM=y' \
           'CONFIG_ZRAM_DEF_COMP_LZ4HC=y' \
-          'CONFIG_ZRAM_DEF_COMP="lz4hc"' \
           'CONFIG_ZSTD_COMPRESS=y' \
           'CONFIG_ZSTD_DECOMPRESS=y' \
           'CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y' \
@@ -393,7 +394,7 @@ jobs:
           'CONFIG_NET_SCH_FQ_CODEL=y' >> "$TMP_FRAG"
 
         # 5. Desduplicar líneas conservando el orden para pasar la validación estricta de Bazel
-        awk '!seen[$0]++' "$TMP_FRAG" > "$TARGET_FRAG"
+        tac "$TMP_FRAG" | awk -F= '/^CONFIG_/{ if (seen[$1]++) next } { print }' | tac > "$TARGET_FRAG"
         rm -f "$TMP_FRAG"
 
     - name: Set Stock Build Identity
