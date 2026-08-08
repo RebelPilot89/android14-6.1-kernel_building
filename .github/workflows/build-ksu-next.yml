@@ -336,6 +336,68 @@ jobs:
         HELPERS="$GITHUB_WORKSPACE/$VERSION_DIR/build-helpers"
         bash "$HELPERS/clean-build-flags.sh" . "$KERNEL_VER" "KernelSU-Next"
 
+    - name: Inject SUSFS & Performance Tuning Configs
+      working-directory: ${{ env.KERNEL_ROOT }}
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
+        DEF_FRAG: ${{ env.DEFCONFIG_FRAGMENT }}
+      run: |
+        # 1. Vincular Kconfig de SUSFS al árbol del kernel si no está enlazado
+        if [ "$ADD_SUSFS" = "true" ] && [ -d "common/fs/susfs" ]; then
+          if ! grep -q "fs/susfs/Kconfig" common/fs/Kconfig 2>/dev/null; then
+            echo 'source "fs/susfs/Kconfig"' >> common/fs/Kconfig
+          fi
+        fi
+
+        # 2. Determinar ruta del fragmento
+        TARGET_FRAG="$DEF_FRAG"
+        if [ -z "$TARGET_FRAG" ] || [ ! -f "$TARGET_FRAG" ]; then
+          TARGET_FRAG="common/arch/arm64/configs/sukisu_gki.fragment"
+        fi
+
+        echo "::notice::Procesando fragmento en $TARGET_FRAG"
+
+        TMP_FRAG=$(mktemp)
+        [ -f "$TARGET_FRAG" ] && cp "$TARGET_FRAG" "$TMP_FRAG"
+
+        # 3. Agregar banderas de SUSFS si aplica
+        if [ "$ADD_SUSFS" = "true" ]; then
+          cat << 'EOF' >> "$TMP_FRAG"
+          CONFIG_KSU_SUSFS=y
+          CONFIG_KSU_SUSFS_SUS_PATH=y
+          CONFIG_KSU_SUSFS_SUS_MOUNT=y
+          CONFIG_KSU_SUSFS_SUS_KSTAT=y
+          CONFIG_KSU_SUSFS_SPOOF_UNAME=y
+          CONFIG_KSU_SUSFS_ENABLE_LOG=y
+          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
+          CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
+          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+          CONFIG_KSU_SUSFS_SUS_MAP=y
+          EOF
+        fi
+
+        # 4. Agregar optimizaciones de rendimiento
+        cat << 'EOF' >> "$TMP_FRAG"
+          CONFIG_ZRAM=y
+          CONFIG_ZRAM_DEF_COMP_LZ4HC=y
+          CONFIG_ZRAM_DEF_COMP="lz4hc"
+          CONFIG_ZSTD_COMPRESS=y
+          CONFIG_ZSTD_DECOMPRESS=y
+          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
+          CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y
+          CONFIG_SCHED_TUNING=y
+          CONFIG_ENERGY_MODEL=y
+          CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n
+          CONFIG_TCP_CONG_ADVANCED=y
+          CONFIG_TCP_CONG_BBR=y
+          CONFIG_DEFAULT_BBR=y
+          CONFIG_NET_SCH_FQ_CODEL=y
+          EOF
+
+        # 5. Desduplicar líneas conservando el orden para pasar la validación estricta de Bazel
+        awk '!seen[$0]++' "$TMP_FRAG" > "$TARGET_FRAG"
+        rm -f "$TMP_FRAG"
+
     - name: Set Stock Build Identity
       working-directory: ${{ env.KERNEL_ROOT }}/common
       env:
