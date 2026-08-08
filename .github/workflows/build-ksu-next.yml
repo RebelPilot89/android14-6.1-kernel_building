@@ -393,13 +393,14 @@ jobs:
         fi
 
         # 4. Agregar optimizaciones de rendimiento si aplica
+        # Nota: las opciones de tuning a nivel de scheduler/TCP se eliminan
+        # del fragmento de compilación porque no existen en el árbol Kconfig
+        # de este kernel y deben aplicarse en tiempo de ejecución vía sysctl.
         if [ "$ADD_PERF" = "true" ]; then
           printf '%s\n' \
             'CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y' \
             'CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y' \
-            'CONFIG_SCHED_TUNING=y' \
             'CONFIG_ENERGY_MODEL=y' \
-            'CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n' \
             'CONFIG_TCP_CONG_ADVANCED=y' \
             'CONFIG_TCP_CONG_BBR=y' \
             'CONFIG_DEFAULT_BBR=y' \
