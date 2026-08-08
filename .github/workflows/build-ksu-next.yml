@@ -359,7 +359,16 @@ jobs:
           : > "$TMP_FRAG"
         fi
 
-        # 2. Agregar banderas de SUSFS si aplica
+        # 2. Vincular el Kconfig de SUSFS si aplica (asegura que el árbol de Kconfig vea los símbolos)
+        if [ "$ADD_SUSFS" = "true" ] && [ -d "common/fs/susfs" ] && [ -f "common/fs/Kconfig" ]; then
+          if grep -q 'source "fs/susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
+            sed -i 's|source "fs/susfs/Kconfig"|source "susfs/Kconfig"|' common/fs/Kconfig
+          elif ! grep -q 'source "susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
+            echo 'source "susfs/Kconfig"' >> common/fs/Kconfig
+          fi
+        fi
+
+        # 3. Agregar banderas de SUSFS si aplica
         if [ "$ADD_SUSFS" = "true" ]; then
           printf '%s\n' \
             'CONFIG_KSU_SUSFS=y' \
