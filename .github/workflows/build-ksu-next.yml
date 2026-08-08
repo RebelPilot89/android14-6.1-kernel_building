@@ -340,18 +340,11 @@ jobs:
       working-directory: ${{ env.KERNEL_ROOT }}
       env:
         ADD_SUSFS: ${{ inputs.add_susfs }}
+        ADD_ZRAM: ${{ inputs.add_zram }}
+        ADD_PERF: ${{ inputs.add_perf_patches }}
         DEF_FRAG: ${{ env.DEFCONFIG_FRAGMENT }}
       run: |
-        # 1. Vincular Kconfig de SUSFS al árbol del kernel si no está enlazado
-        if [ "$ADD_SUSFS" = "true" ] && [ -d "common/fs/susfs" ]; then
-          if grep -q 'source "fs/susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
-            sed -i 's|source "fs/susfs/Kconfig"|source "susfs/Kconfig"|' common/fs/Kconfig
-          elif ! grep -q 'source "susfs/Kconfig"' common/fs/Kconfig 2>/dev/null; then
-            echo 'source "susfs/Kconfig"' >> common/fs/Kconfig
-          fi
-        fi
-
-        # 2. Determinar ruta del fragmento
+        # 1. Determinar ruta del fragmento
         TARGET_FRAG="$DEF_FRAG"
         if [ -z "$TARGET_FRAG" ] || [ ! -f "$TARGET_FRAG" ]; then
           TARGET_FRAG="common/arch/arm64/configs/sukisu_gki.fragment"
@@ -360,9 +353,13 @@ jobs:
         echo "::notice::Procesando fragmento en $TARGET_FRAG"
 
         TMP_FRAG=$(mktemp)
-        [ -f "$TARGET_FRAG" ] && cp "$TARGET_FRAG" "$TMP_FRAG"
+        if [ -f "$TARGET_FRAG" ]; then
+          cp "$TARGET_FRAG" "$TMP_FRAG"
+        else
+          : > "$TMP_FRAG"
+        fi
 
-        # 3. Agregar banderas de SUSFS si aplica
+        # 2. Agregar banderas de SUSFS si aplica
         if [ "$ADD_SUSFS" = "true" ]; then
           printf '%s\n' \
             'CONFIG_KSU_SUSFS=y' \
@@ -377,21 +374,28 @@ jobs:
             'CONFIG_KSU_SUSFS_SUS_MAP=y' >> "$TMP_FRAG"
         fi
 
-        # 4. Agregar optimizaciones de rendimiento
-        printf '%s\n' \
-          'CONFIG_ZRAM=y' \
-          'CONFIG_ZRAM_DEF_COMP_LZ4HC=y' \
-          'CONFIG_ZSTD_COMPRESS=y' \
-          'CONFIG_ZSTD_DECOMPRESS=y' \
-          'CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y' \
-          'CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y' \
-          'CONFIG_SCHED_TUNING=y' \
-          'CONFIG_ENERGY_MODEL=y' \
-          'CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n' \
-          'CONFIG_TCP_CONG_ADVANCED=y' \
-          'CONFIG_TCP_CONG_BBR=y' \
-          'CONFIG_DEFAULT_BBR=y' \
-          'CONFIG_NET_SCH_FQ_CODEL=y' >> "$TMP_FRAG"
+        # 3. Agregar ZRAM si aplica
+        if [ "$ADD_ZRAM" = "true" ]; then
+          printf '%s\n' \
+            'CONFIG_ZRAM=y' \
+            'CONFIG_ZRAM_DEF_COMP_LZ4KD=y' \
+            'CONFIG_ZRAM_WRITEBACK=y' \
+            'CONFIG_ZSMALLOC=y' >> "$TMP_FRAG"
+        fi
+
+        # 4. Agregar optimizaciones de rendimiento si aplica
+        if [ "$ADD_PERF" = "true" ]; then
+          printf '%s\n' \
+            'CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y' \
+            'CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y' \
+            'CONFIG_SCHED_TUNING=y' \
+            'CONFIG_ENERGY_MODEL=y' \
+            'CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n' \
+            'CONFIG_TCP_CONG_ADVANCED=y' \
+            'CONFIG_TCP_CONG_BBR=y' \
+            'CONFIG_DEFAULT_BBR=y' \
+            'CONFIG_NET_SCH_FQ_CODEL=y' >> "$TMP_FRAG"
+        fi
 
         # 5. Desduplicar líneas conservando el orden para pasar la validación estricta de Bazel
         tac "$TMP_FRAG" | awk -F= '/^CONFIG_/{ if (seen[$1]++) next } { print }' | tac > "$TARGET_FRAG"
