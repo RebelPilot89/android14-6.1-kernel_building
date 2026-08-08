@@ -362,7 +362,7 @@ jobs:
 
         # 3. Agregar banderas de SUSFS si aplica
         if [ "$ADD_SUSFS" = "true" ]; then
-          cat << 'EOF' >> "$TMP_FRAG"
+          cat <<- 'EOF' >> "$TMP_FRAG"
           CONFIG_KSU_SUSFS=y
           CONFIG_KSU_SUSFS_SUS_PATH=y
           CONFIG_KSU_SUSFS_SUS_MOUNT=y
@@ -373,11 +373,11 @@ jobs:
           CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
           CONFIG_KSU_SUSFS_SUS_MAP=y
-          EOF
+        	EOF
         fi
 
         # 4. Agregar optimizaciones de rendimiento
-        cat << 'EOF' >> "$TMP_FRAG"
+        cat <<- 'EOF' >> "$TMP_FRAG"
           CONFIG_ZRAM=y
           CONFIG_ZRAM_DEF_COMP_LZ4HC=y
           CONFIG_ZRAM_DEF_COMP="lz4hc"
@@ -392,7 +392,7 @@ jobs:
           CONFIG_TCP_CONG_BBR=y
           CONFIG_DEFAULT_BBR=y
           CONFIG_NET_SCH_FQ_CODEL=y
-          EOF
+        	EOF
 
         # 5. Desduplicar líneas conservando el orden para pasar la validación estricta de Bazel
         awk '!seen[$0]++' "$TMP_FRAG" > "$TARGET_FRAG"
