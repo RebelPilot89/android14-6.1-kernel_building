@@ -362,37 +362,35 @@ jobs:
 
         # 3. Agregar banderas de SUSFS si aplica
         if [ "$ADD_SUSFS" = "true" ]; then
-          cat <<- 'EOF' >> "$TMP_FRAG"
-          CONFIG_KSU_SUSFS=y
-          CONFIG_KSU_SUSFS_SUS_PATH=y
-          CONFIG_KSU_SUSFS_SUS_MOUNT=y
-          CONFIG_KSU_SUSFS_SUS_KSTAT=y
-          CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-          CONFIG_KSU_SUSFS_ENABLE_LOG=y
-          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-          CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-          CONFIG_KSU_SUSFS_SUS_MAP=y
-        	EOF
+          printf '%s\n' \
+            'CONFIG_KSU_SUSFS=y' \
+            'CONFIG_KSU_SUSFS_SUS_PATH=y' \
+            'CONFIG_KSU_SUSFS_SUS_MOUNT=y' \
+            'CONFIG_KSU_SUSFS_SUS_KSTAT=y' \
+            'CONFIG_KSU_SUSFS_SPOOF_UNAME=y' \
+            'CONFIG_KSU_SUSFS_ENABLE_LOG=y' \
+            'CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y' \
+            'CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y' \
+            'CONFIG_KSU_SUSFS_OPEN_REDIRECT=y' \
+            'CONFIG_KSU_SUSFS_SUS_MAP=y' >> "$TMP_FRAG"
         fi
 
         # 4. Agregar optimizaciones de rendimiento
-        cat <<- 'EOF' >> "$TMP_FRAG"
-          CONFIG_ZRAM=y
-          CONFIG_ZRAM_DEF_COMP_LZ4HC=y
-          CONFIG_ZRAM_DEF_COMP="lz4hc"
-          CONFIG_ZSTD_COMPRESS=y
-          CONFIG_ZSTD_DECOMPRESS=y
-          CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
-          CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y
-          CONFIG_SCHED_TUNING=y
-          CONFIG_ENERGY_MODEL=y
-          CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n
-          CONFIG_TCP_CONG_ADVANCED=y
-          CONFIG_TCP_CONG_BBR=y
-          CONFIG_DEFAULT_BBR=y
-          CONFIG_NET_SCH_FQ_CODEL=y
-        	EOF
+        printf '%s\n' \
+          'CONFIG_ZRAM=y' \
+          'CONFIG_ZRAM_DEF_COMP_LZ4HC=y' \
+          'CONFIG_ZRAM_DEF_COMP="lz4hc"' \
+          'CONFIG_ZSTD_COMPRESS=y' \
+          'CONFIG_ZSTD_DECOMPRESS=y' \
+          'CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y' \
+          'CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y' \
+          'CONFIG_SCHED_TUNING=y' \
+          'CONFIG_ENERGY_MODEL=y' \
+          'CONFIG_NET_TCP_SLOW_START_AFTER_IDLE=n' \
+          'CONFIG_TCP_CONG_ADVANCED=y' \
+          'CONFIG_TCP_CONG_BBR=y' \
+          'CONFIG_DEFAULT_BBR=y' \
+          'CONFIG_NET_SCH_FQ_CODEL=y' >> "$TMP_FRAG"
 
         # 5. Desduplicar líneas conservando el orden para pasar la validación estricta de Bazel
         awk '!seen[$0]++' "$TMP_FRAG" > "$TARGET_FRAG"
