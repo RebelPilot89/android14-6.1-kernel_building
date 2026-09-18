@@ -49,12 +49,9 @@ on:
       device_codename:
         type: string
         default: ""
-        branch_namespace:
       branch_namespace:
         type: string
         default: ""
-          type: string
-          default: ""
 
 jobs:
   build:
