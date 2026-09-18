@@ -219,7 +219,7 @@ jobs:
       kernel_version: ${{ steps.parse.outputs.kernel_version }}
       sub_level: ${{ steps.parse.outputs.sub_level }}
       os_patch_level: ${{ steps.parse.outputs.os_patch_level }}
-      device_codename: ${{ steps.device.outputs.codename }}
+      branch_namespace: ${{ steps.validate_branch.outputs.branch_namespace }}
       variants: ${{ steps.variants.outputs.matrix }}
     steps:
       - name: Parse kernel_target

@@ -50,6 +50,9 @@ on:
         type: string
         default: ""
         branch_namespace:
+      branch_namespace:
+        type: string
+        default: ""
           type: string
           default: ""
 
@@ -145,9 +148,18 @@ jobs:
         OS_PATCH: ${{ inputs.os_patch_level }}
       run: |
         FORMATTED_BRANCH="${ANDROID_VER}-${KERNEL_VER}-${OS_PATCH}"
+        BRANCH_NAMESPACE="${{ inputs.branch_namespace }}"
+
+        if [ "$BRANCH_NAMESPACE" = "deprecated" ]; then
+          MANIFEST_BRANCH="deprecated/${FORMATTED_BRANCH}"
+        else
+          MANIFEST_BRANCH="${FORMATTED_BRANCH}"
+        fi
+
+        echo "Using GKI manifest branch: common-${MANIFEST_BRANCH}"
 
         repo init -u https://android.googlesource.com/kernel/manifest \
-          -b "common-${FORMATTED_BRANCH}" --depth=1
+          -b "common-${MANIFEST_BRANCH}" --depth=1
 
         # Check if the GKI branch is now under the deprecated namespace.
         # Use a wildcard to match both normal and deprecated refs.
