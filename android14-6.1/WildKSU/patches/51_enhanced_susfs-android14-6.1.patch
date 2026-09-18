@@ -629,7 +629,6 @@ diff '--color=auto' -ruN post-upstream/fs/open.c work-50/fs/open.c
 +#ifdef CONFIG_KSU_SUSFS_HIDDEN_NAME
 +extern bool susfs_is_hidden_name(const char *name, int namlen, uid_t caller_uid);
 +#endif
-+#endif
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +extern bool susfs_check_unicode_bypass(const char __user *filename);
  #endif
@@ -975,7 +974,6 @@ diff '--color=auto' -ruN post-upstream/fs/stat.c work-50/fs/stat.c
  #endif
 +#ifdef CONFIG_KSU_SUSFS_HIDDEN_NAME
 +extern bool susfs_is_hidden_name(const char *name, int namlen, uid_t caller_uid);
-+#endif
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +extern bool susfs_check_unicode_bypass(const char __user *filename);
 +#endif
@@ -1923,7 +1921,6 @@ diff '--color=auto' -ruN post-upstream/fs/susfs.c work-50/fs/susfs.c
 +	info->err = copy_config_to_buf("CONFIG_KSU_SUSFS_SUS_KSTAT_REDIRECT\n", buf_ptr, &copied_size, SUSFS_ENABLED_FEATURES_SIZE);
 +	if (info->err) goto out_copy_to_user;
 +	buf_ptr = info->enabled_features + copied_size;
-+#endif
 +#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
 +	info->err = copy_config_to_buf("CONFIG_KSU_SUSFS_UNICODE_FILTER\n", buf_ptr, &copied_size, SUSFS_ENABLED_FEATURES_SIZE);
 +	if (info->err) goto out_copy_to_user;
