@@ -147,21 +147,17 @@ jobs:
         FORMATTED_BRANCH="${ANDROID_VER}-${KERNEL_VER}-${OS_PATCH}"
         BRANCH_NAMESPACE="${{ inputs.branch_namespace }}"
 
-        if [ "$BRANCH_NAMESPACE" = "deprecated" ]; then
-          MANIFEST_BRANCH="deprecated/${FORMATTED_BRANCH}"
-        else
-          MANIFEST_BRANCH="${FORMATTED_BRANCH}"
-        fi
-
-        echo "Using GKI manifest branch: common-${MANIFEST_BRANCH}"
+        MANIFEST_BRANCH="common-${FORMATTED_BRANCH}"
+        echo "Using GKI manifest branch: ${MANIFEST_BRANCH}"
 
         repo init -u https://android.googlesource.com/kernel/manifest \
-          -b "common-${MANIFEST_BRANCH}" --depth=1
+          -b "${MANIFEST_BRANCH}" --depth=1
 
-        # Check if the GKI branch is now under the deprecated namespace.
-        # Use a wildcard to match both normal and deprecated refs.
+        # Only use branch_namespace to detect the source branch namespace.
+        # The manifest repository itself uses 'common-...' naming and does not accept
+        # 'common-deprecated/...'.
         REMOTE_BRANCH=$(git ls-remote https://android.googlesource.com/kernel/common "*${FORMATTED_BRANCH}" || true)
-        if grep -q "deprecated/${FORMATTED_BRANCH}" <<< "$REMOTE_BRANCH"; then
+        if [ -n "$REMOTE_BRANCH" ] && grep -q "deprecated/${FORMATTED_BRANCH}" <<< "$REMOTE_BRANCH"; then
           sed -i "s/\"${FORMATTED_BRANCH}\"/\"deprecated\/${FORMATTED_BRANCH}\"/g" .repo/manifests/default.xml
         fi
 
