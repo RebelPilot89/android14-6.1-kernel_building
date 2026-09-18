@@ -326,7 +326,7 @@ jobs:
           android14-6.1.129 (2025-04)
           android14-6.1.134 (2025-05)
           android14-6.1.138 (2025-06)
-          android14-6.1.141 (2025-07)
+          android14-6.1.141 (2025-09)
           android14-6.1.145 (2025-09)
           android14-6.1.157 (2025-12)
           android15-6.6.30 (2024-07)
@@ -341,13 +341,13 @@ jobs:
           android15-6.6.82 (2025-04)
           android15-6.6.87 (2025-05)
           android15-6.6.89 (2025-06)
-          android15-6.6.92 (2025-07)
+          android15-6.6.92 (2025-09)
           android15-6.6.98 (2025-08)
           android15-6.6.98 (2025-09)
           android15-6.6.102 (2025-10)
           android15-6.6.118 (2026-01)
           android16-6.12.23 (2025-06)
-          android16-6.12.30 (2025-07)
+          android16-6.12.30 (2025-09)
           android16-6.12.38 (2025-08)
           android16-6.12.38 (2025-09)
           android16-6.12.58 (2025-12)
@@ -376,6 +376,35 @@ jobs:
           echo "kernel_version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
           echo "sub_level=${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
           echo "os_patch_level=${BASH_REMATCH[4]}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate GKI branch exists
+        id: validate_branch
+        env:
+          ANDROID_VER: ${{ steps.parse.outputs.android_version }}
+          KERNEL_VER: ${{ steps.parse.outputs.kernel_version }}
+          OS_PATCH: ${{ steps.parse.outputs.os_patch_level }}
+        run: |
+          FORMATTED_BRANCH="${ANDROID_VER}-${KERNEL_VER}-${OS_PATCH}"
+          echo "Checking GKI branch: $FORMATTED_BRANCH"
+          
+          # Check if branch exists in kernel/common (active or deprecated)
+          REMOTE_BRANCH=$(git ls-remote https://android.googlesource.com/kernel/common "*${FORMATTED_BRANCH}" 2>/dev/null | head -1)
+          
+          if [ -z "$REMOTE_BRANCH" ]; then
+            echo "::error::GKI branch '$FORMATTED_BRANCH' not found in kernel/common (neither active nor deprecated)"
+            echo "Available branches for ${ANDROID_VER}-${KERNEL_VER}:"
+            git ls-remote https://android.googlesource.com/kernel/common "refs/heads/${ANDROID_VER}-${KERNEL_VER}-*" "refs/heads/deprecated/${ANDROID_VER}-${KERNEL_VER}-*" 2>/dev/null | awk -F'refs/heads/' '{print $2}' | sort -u | head -20
+            exit 1
+          fi
+          
+          # Check if it's in deprecated namespace and set output
+          if echo "$REMOTE_BRANCH" | grep -q "deprecated/${FORMATTED_BRANCH}"; then
+            echo "branch_namespace=deprecated" >> "$GITHUB_OUTPUT"
+            echo "Branch found in deprecated namespace"
+          else
+            echo "branch_namespace=active" >> "$GITHUB_OUTPUT"
+            echo "Branch found in active namespace"
+          fi
 
       - uses: actions/checkout@v6
         with:
@@ -440,6 +469,7 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
+      branch_namespace: ${{ needs.resolve.outputs.branch_namespace }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
       add_zram: ${{ inputs.add_zram }}
@@ -458,6 +488,7 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
+      branch_namespace: ${{ needs.resolve.outputs.branch_namespace }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
       add_zram: ${{ inputs.add_zram }}
@@ -476,6 +507,7 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
+      branch_namespace: ${{ needs.resolve.outputs.branch_namespace }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
       add_zram: ${{ inputs.add_zram }}
@@ -494,6 +526,7 @@ jobs:
       kernel_version: ${{ needs.resolve.outputs.kernel_version }}
       sub_level: ${{ needs.resolve.outputs.sub_level }}
       os_patch_level: ${{ needs.resolve.outputs.os_patch_level }}
+      branch_namespace: ${{ needs.resolve.outputs.branch_namespace }}
       add_susfs: ${{ inputs.add_susfs }}
       add_zeromount: ${{ inputs.add_zeromount }}
       add_zram: ${{ inputs.add_zram }}
