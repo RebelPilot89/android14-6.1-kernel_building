@@ -218,6 +218,18 @@ jobs:
       run: |
         patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/SukiSU-Ultra/patches/50_add_susfs_in_gki-${ANDROID_VER}-${KERNEL_VER}.patch"
 
+    - name: Validate Enhanced SUSFS Patch
+      if: inputs.add_susfs
+      working-directory: ${{ env.KERNEL_ROOT }}/common
+      run: |
+        PATCH="$GITHUB_WORKSPACE/$VERSION_DIR/SukiSU-Ultra/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
+        [ -s "$PATCH" ] || { echo "::error::Missing patch: $PATCH"; exit 1; }
+        git apply --check --verbose --unsafe-paths "$PATCH" || {
+          echo "::error::Malformed SUSFS patch: $PATCH"
+          grep -n '^@@' "$PATCH" | tail -20 || true
+          exit 1
+        }
+
     - name: Apply Enhanced SUSFS Patch
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
