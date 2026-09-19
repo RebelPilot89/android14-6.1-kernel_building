@@ -1,43 +1,26 @@
 diff --git a/fs/open.c b/fs/open.c
-index a55b728c7..215dc708d 100644
+index 82d10b7a5..3a7c9a329 100644
 --- a/fs/open.c
 +++ b/fs/open.c
-@@ -428,6 +428,13 @@ extern int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int
- 			int *flags);
- #endif
+@@ -33,6 +33,9 @@
+ #include <linux/dnotify.h>
+ #include <linux/compat.h>
+ #include <linux/mnt_idmapping.h>
++#ifdef CONFIG_KSU_SUSFS
++#include <linux/susfs.h>
++#endif
  
-+#ifdef CONFIG_KSU_SUSFS_HIDDEN_NAME
-+extern bool susfs_is_hidden_name(const char *name, int namlen, uid_t caller_uid);
-+#endif
-+#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
-+extern bool susfs_check_unicode_bypass(const char __user *filename);
-+#endif
-+
- static long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
- {
- 	struct path path;
-@@ -1354,6 +1361,11 @@ static long do_sys_openat2(int dfd, const char __user *filename,
+ #include "internal.h"
+ #include <trace/hooks/syscall_check.h>
+@@ -1334,6 +1337,11 @@ static long do_sys_openat2(int dfd, const char __user *filename,
  	if (fd)
  		return fd;
  
-+#ifdef CONFIG_KSU_SUSFS_UNICODE_FILTER
++	#ifdef CONFIG_KSU_SUSFS
 +	if (susfs_check_unicode_bypass(filename))
 +		return -ENOENT;
-+#endif
++	#endif
 +
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-diff --git a/include/linux/susfs.h b/include/linux/susfs.h
-index b18cf88b5..bfcb8c6b5 100644
---- a/include/linux/susfs.h
-+++ b/include/linux/susfs.h
-@@ -221,3 +221,8 @@ void susfs_start_sdcard_monitor_fn(void);
- void susfs_init(void);
- 
- #endif
-+
-+#ifdef CONFIG_KSU_SUSFS
-+bool susfs_check_unicode_bypass(const char __user *filename);
-+bool susfs_is_hidden_name(const char *name, int namlen, uid_t caller_uid);
-+#endif
