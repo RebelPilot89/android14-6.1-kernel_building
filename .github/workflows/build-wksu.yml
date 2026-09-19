@@ -216,17 +216,31 @@ jobs:
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
       run: |
-        patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/50_add_susfs_in_gki-${ANDROID_VER}-${KERNEL_VER}.patch"
+        BASE="$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/50_add_susfs_in_gki-${ANDROID_VER}-${KERNEL_VER}"
+        PATCH="${BASE}.${SUBLEVEL}.patch"
+        if [ ! -s "$PATCH" ]; then
+          PATCH="${BASE}.patch"
+        fi
+        [ -s "$PATCH" ] || { echo "::error::Missing upstream SUSFS patch for ${ANDROID_VER}-${KERNEL_VER}.${SUBLEVEL}"; exit 1; }
+        echo "Applying upstream SUSFS patch: $PATCH"
+        patch -p1 -F3 --no-backup-if-mismatch < "$PATCH"
 
     - name: Validate Enhanced SUSFS Patch
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
       run: |
-        PATCH="$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
-        [ -s "$PATCH" ] || { echo "::error::Missing patch: $PATCH"; exit 1; }
+        BASE="$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}"
+        PATCH="${BASE}.${SUBLEVEL}.patch"
+        if [ ! -s "$PATCH" ]; then
+          PATCH="${BASE}.patch"
+        fi
+        [ -s "$PATCH" ] || { echo "::error::Missing enhanced SUSFS patch for ${ANDROID_VER}-${KERNEL_VER}.${SUBLEVEL}"; exit 1; }
+        echo "Target: ${ANDROID_VER}-${KERNEL_VER}.${SUBLEVEL}"
+        echo "Validating SUSFS patch: $PATCH"
         git apply --check --verbose --unsafe-paths "$PATCH" || {
-          echo "::error::Malformed SUSFS patch: $PATCH"
-          grep -n '^@@' "$PATCH" | tail -20 || true
+          echo "::error::Enhanced SUSFS patch is incompatible with ${ANDROID_VER}-${KERNEL_VER}.${SUBLEVEL}"
+          git apply --reject --whitespace=nowarn "$PATCH" || true
+          find . -name '*.rej' -print || true
           exit 1
         }
 
@@ -234,7 +248,13 @@ jobs:
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
       run: |
-        patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
+        BASE="$GITHUB_WORKSPACE/$VERSION_DIR/WildKSU/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}"
+        PATCH="${BASE}.${SUBLEVEL}.patch"
+        if [ ! -s "$PATCH" ]; then
+          PATCH="${BASE}.patch"
+        fi
+        echo "Applying enhanced SUSFS patch: $PATCH"
+        patch -p1 -F3 --no-backup-if-mismatch < "$PATCH"
 
     - name: Apply KSU Safety Patch
       if: inputs.add_susfs
