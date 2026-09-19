@@ -214,15 +214,31 @@ jobs:
     - name: Apply Upstream SUSFS Patch
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
       run: |
+        set -euo pipefail
+        if [ "$ADD_SUSFS" != "true" ]; then
+          echo "SUSFS disabled by workflow input"
+          exit 0
+        fi
+        echo "Applying upstream SUSFS patch: $GITHUB_WORKSPACE/$VERSION_DIR/KernelSU-Next/patches/50_add_susfs_in_gki-${ANDROID_VER}-${KERNEL_VER}.patch"
         patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/KernelSU-Next/patches/50_add_susfs_in_gki-${ANDROID_VER}-${KERNEL_VER}.patch"
 
     - name: Validate Enhanced SUSFS Patch
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
       run: |
+        set -euo pipefail
+        if [ "$ADD_SUSFS" != "true" ]; then
+          echo "SUSFS disabled by workflow input"
+          exit 0
+        fi
         PATCH="$GITHUB_WORKSPACE/$VERSION_DIR/KernelSU-Next/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
         [ -s "$PATCH" ] || { echo "::error::Missing patch: $PATCH"; exit 1; }
+        echo "Validating SUSFS patch: $PATCH"
         git apply --check --verbose --unsafe-paths "$PATCH" || {
           echo "::error::Malformed SUSFS patch: $PATCH"
           grep -n '^@@' "$PATCH" | tail -20 || true
@@ -232,8 +248,17 @@ jobs:
     - name: Apply Enhanced SUSFS Patch
       if: inputs.add_susfs
       working-directory: ${{ env.KERNEL_ROOT }}/common
+      env:
+        ADD_SUSFS: ${{ inputs.add_susfs }}
       run: |
-        patch -p1 -F3 --no-backup-if-mismatch < "$GITHUB_WORKSPACE/$VERSION_DIR/KernelSU-Next/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
+        set -euo pipefail
+        if [ "$ADD_SUSFS" != "true" ]; then
+          echo "SUSFS disabled by workflow input"
+          exit 0
+        fi
+        PATCH="$GITHUB_WORKSPACE/$VERSION_DIR/KernelSU-Next/patches/51_enhanced_susfs-${ANDROID_VER}-${KERNEL_VER}.patch"
+        echo "Applying enhanced SUSFS patch: $PATCH"
+        patch -p1 -F3 --no-backup-if-mismatch < "$PATCH"
 
     - name: Apply KSU Safety Patch
       if: inputs.add_susfs
